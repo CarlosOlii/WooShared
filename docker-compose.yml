@@ -1,0 +1,58 @@
+version: "3.7"
+
+services:
+  frontend:
+    build: ./frontend
+    image: wooshared-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: wooshared-backend:latest
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./backend/application/:/var/www
+    depends_on:
+      - db
+    networks:
+      - default
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "8989:80"
+    volumes:
+      - ./backend/application/:/var/www
+      - ./backend/docker/nginx/:/etc/nginx/conf.d/
+    networks:
+      - default
+
+  db:
+    image: mysql:5.7.22
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-wooshared}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_USER: ${DB_USERNAME:-root}
+    ports:
+      - "3388:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - default
+
+volumes:
+  db_data: {}
+
+networks:
+  default:
+    driver: bridge
